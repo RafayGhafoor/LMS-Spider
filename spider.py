@@ -1,9 +1,10 @@
 import sys
 import re
+import os
+from pathlib import Path, PurePath
 
 import requests
 import bs4
-from pathlib import Path, PurePath
 
 session = requests.Session()
 domain = 'http://www.kipslms.com'  # domain of the site to be used in subsequent requests.
@@ -46,12 +47,14 @@ def login(username, password, url='http://www.kipslms.com/Account/Login'):
 
     soup = scrape_page(url=url, soup='y')
     payload = {"UserName": username, "Password": password, "__RequestVerificationToken": soup.find('input').get('value'), 'RememberMe': "true"}
-    return (session.post(url, data=payload).status_code)
+    return session.post(url, data=payload).status_code
 
 
-def get_course_link(url='http://www.kipslms.com/Candidate/MyPrograms'):
-    soup = scrape_page(url, soup='y')
-    return(soup.find('div', class_='programs-list-links'))
+def get_course_link(url='http://www.kipslms.com/Candidate/GetMyProgramsPartialView'):
+    '''Obtain course link (FUNG | ECAT) from KipsLMS homepage.'''
+    soup = scrape_page(url, params={'programType': 2}, soup='y')
+    return domain + soup.find('div', class_='programs-list-links').find('a').get('href')
+
 
 def get_subjects(url='http://www.kipslms.com/Candidate/Course?q=NYwfm4TSzL7uZkBX5aA1tUfMQ3sGz1+S'):
     '''
@@ -62,6 +65,9 @@ def get_subjects(url='http://www.kipslms.com/Candidate/Course?q=NYwfm4TSzL7uZkBX
     English > URL
     Physics > URL
     Mathematics > URL
+
+    Return:
+    {"English": Subject_URL, "Physics": Subject_URL}
     '''
     subjects_info = {}
     soup = scrape_page(url, soup='y')
@@ -76,15 +82,15 @@ def get_subject_weeks(url):
     '''
     Obtain weeks urls whose lectures are/will be available.
 
-    Takes the url of the subject.
-
     Example: English | http://link.com/Subject
 
     Week 1 -> Lectures Links....
+    Week 2 -> Lectures Links....
     
     Returns: {1: links..., 2: links....}
     '''
     week_track = {}
+    # subjects is a dictionary, name is the name of the subject
     soup = scrape_page(url, soup='y')
 
     class_lst = [ "week-item activity-group-nav-default ",
@@ -101,12 +107,7 @@ def get_subject_weeks(url):
 
 
 def get_videos_links(url):
-    '''Obtain videos from the provided webpage along with their names.
-    
-    @args:
-
-    url: URL to the webpage, normally the link for week x (where x is an integer upto 8)
-    '''
+    '''Obtain videos from the provided webpage along with their names.'''
     soup = scrape_page(url, soup='y')
     # A dictionary containing pair of url of the video and its title.
     return dict([
@@ -117,12 +118,7 @@ def get_videos_links(url):
 
 
 def get_video_page(url):
-    '''Obtain video links for downloading of the lecture videos for the topics.
-    
-    @args:
-    
-    url:  
-    '''
+    '''Obtain video links for downloading of the lecture videos for the topics.'''
     soup = scrape_page(url, soup='y')
     content_id = soup.find('input', attrs={'id': 'hfDetailContentId'}).get('value')
     sos_details_id = soup.find('input', attrs={'id': 'hfSOSDetailId'}).get('value')
@@ -141,17 +137,34 @@ if __name__ == '__main__':
         username, password = sys.argv[1], sys.argv[2]
     
     print("Logging into your account....\n")
+
     if login(username, password) == 200:
         print("Sucessfully Logged in.\n")
 
-    print(get_course_link())
-    # # Obtain physics subjects link from your course home page section i.e., [Physics | Chemistry | Maths]
-    # subject_url = get_subjects()['physics']
-    # # Week 1 link from total weeks  
-    # week_1 = get_subject_weeks(url=subject_url)[1]
-
+    # Obtain physics subjects link from your course home page section i.e., [Physics | Chemistry | Maths]
+    subjects_url = get_subjects()
     
-    # for name, url in get_videos_links(week_1).items():
-    #     print(name) 
-    #     print(get_upstream_link(get_video_page(url)))
-    #     break
+    for subject_name, subject_link in subjects_url.items():
+        try:
+            Path(subject_name).mkdir(exist_ok=True)
+            os.chdir(subject_name)
+            subjects_weeks = get_subject_weeks(url=subject_link)
+
+            for weeks, url in subjects_weeks.items():
+                Path("Week " + str(weeks)).mkdir(exist_ok=True)
+                os.chdir("Week " + str(weeks))
+                for name, url in get_videos_links(subjects_weeks[weeks]).items():
+
+                    print("Downloading....{}".format(name))                
+                    dl_link = get_upstream_link(get_video_page(url))
+                    r = requests.get(dl_link, stream=True)
+                    with open(name + '.mp4', 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=150):
+                            if chunk:
+                                f.write(chunk)
+                os.chdir('..')
+            os.chdir('..')
+                
+        except:
+            pass
+
