@@ -142,7 +142,7 @@ if __name__ == '__main__':
         print("Sucessfully Logged in.\n")
 
     # Obtain physics subjects link from your course home page section i.e., [Physics | Chemistry | Maths]
-    subjects_url = get_subjects()
+    subjects_url = get_subjects(url=get_course_link())
     
     for subject_name, subject_link in subjects_url.items():
         
