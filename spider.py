@@ -56,7 +56,7 @@ def get_course_link(url='http://www.kipslms.com/Candidate/GetMyProgramsPartialVi
     return domain + soup.find('div', class_='programs-list-links').find('a').get('href')
 
 
-def get_subjects(url='http://www.kipslms.com/Candidate/Course?q=NYwfm4TSzL7uZkBX5aA1tUfMQ3sGz1+S'):
+def get_subjects(url):
     '''
     Obtain subjects of the session, you're currently enrolled in and their corresponding 
     urls for lectures scraping of a particular subject.
