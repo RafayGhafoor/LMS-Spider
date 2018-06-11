@@ -144,18 +144,27 @@ if __name__ == '__main__':
     # Obtain physics subjects link from your course home page section i.e., [Physics | Chemistry | Maths]
     subjects_url = get_subjects(url=get_course_link())
     
+    # Iterate over subjects (corresponding links) i.e, math | chemistry...
     for subject_name, subject_link in subjects_url.items():
-        
+            # Create a folder name of the subject name 
             Path(subject_name).mkdir(exist_ok=True)
+            # Switch to the created directory for subsequent downloads in the respective directory
             os.chdir(subject_name)
+            # Get number of weeks (containing lectures) for the given subject
             subjects_weeks = get_subject_weeks(url=subject_link)
-            
+            # Iterate over subject weeks range from length (1-8)            
             for weeks, url in subjects_weeks.items():
+                # Create folder of the week being iterated of format
+                # Week [Num] -> Week 1 | Week 2 | Week 3 
                 Path("Week " + str(weeks)).mkdir(exist_ok=True)
+                # Switch to the week directory created for the files to be created
                 os.chdir("Week " + str(weeks))
+                # Get lectures links of the week being iterated
                 for name, url in get_videos_links(subjects_weeks[weeks]).items():
-                    print("Downloading....{}".format(name))           
-                    if not Path(name + '.mp4').exists():     
+                    # If file is already available, skip it.
+                    if not Path(name + '.mp4').exists():    
+                        print("Downloading .... {}".format(name))
+                        # Catch and ignore exception, continues, if the url is inaccessible/invalid 
                         try:
 
                             dl_link = get_upstream_link(get_video_page(url))
@@ -169,10 +178,10 @@ if __name__ == '__main__':
                             print("Some error occured while downloading {}".format(name))
                             continue
                     else:
-                        print("{}.mp4 Downloaded".format(name))
-                
+                        print("Already Available --> {}.mp4".format(name))
+                # Switch to parent directory (subject directory)
                 os.chdir('..')
 
-
+            # Switch to the parent directory, parent of subject (root directory), where the script is being executed.
             os.chdir('..')
                 
