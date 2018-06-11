@@ -145,26 +145,34 @@ if __name__ == '__main__':
     subjects_url = get_subjects()
     
     for subject_name, subject_link in subjects_url.items():
-        try:
+        
             Path(subject_name).mkdir(exist_ok=True)
             os.chdir(subject_name)
             subjects_weeks = get_subject_weeks(url=subject_link)
-
+            
             for weeks, url in subjects_weeks.items():
                 Path("Week " + str(weeks)).mkdir(exist_ok=True)
                 os.chdir("Week " + str(weeks))
                 for name, url in get_videos_links(subjects_weeks[weeks]).items():
+                    print("Downloading....{}".format(name))           
+                    if not Path(name + '.mp4').exists():     
+                        try:
 
-                    print("Downloading....{}".format(name))                
-                    dl_link = get_upstream_link(get_video_page(url))
-                    r = requests.get(dl_link, stream=True)
-                    with open(name + '.mp4', 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=150):
-                            if chunk:
-                                f.write(chunk)
+                            dl_link = get_upstream_link(get_video_page(url))
+                            r = requests.get(dl_link, stream=True)
+                            with open(name + '.mp4', 'wb') as f:
+                                for chunk in r.iter_content(chunk_size=150):
+                                    if chunk:
+                                        f.write(chunk)
+
+                        except:
+                            print("Some error occured while downloading {}".format(name))
+                            continue
+                    else:
+                        print("{}.mp4 Downloaded".format(name))
+                
                 os.chdir('..')
+
+
             os.chdir('..')
                 
-        except:
-            pass
-
